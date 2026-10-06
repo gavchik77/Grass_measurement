@@ -1,0 +1,800 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Grass Growth & Grazing Allocation Tutor</title>
+<style>
+:root{
+  --bg:#f4f7f2;--card:#fff;--ink:#203023;--muted:#69746b;--line:#dbe5dc;
+  --green:#2f6a3b;--green2:#6f9b75;--greenbg:#eaf5eb;
+  --red:#9b3b34;--redbg:#fae9e7;--amber:#85651b;--amberbg:#fff5d9;
+  --blue:#356b83;--bluebg:#eaf3f7;
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif;background:var(--bg);color:var(--ink);line-height:1.5}
+.wrap{max-width:1160px;margin:0 auto;padding:0 20px}
+.hero{background:linear-gradient(135deg,#244b2d,#56805d);color:white;padding:48px 0 62px}
+.hero h1{font-size:clamp(2.25rem,5vw,4rem);line-height:1;margin:.2rem 0 .6rem}
+.hero p{max-width:850px;margin:0}
+.kicker,.stepno{text-transform:uppercase;letter-spacing:.12em;font-size:.76rem;font-weight:850}
+main{margin-top:-28px;padding-bottom:60px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:24px;margin-bottom:20px;box-shadow:0 10px 28px rgba(34,64,39,.07)}
+.card h2{margin:.15rem 0 .7rem}.card h3{margin:1.25rem 0 .5rem}
+.hidden{display:none!important}
+.small{font-size:.88rem;color:var(--muted)}
+.case-grid,.score-summary,.mini-grid,.summary-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:15px 0}
+.case-grid div,.score-summary div,.mini-grid div,.summary-grid div{border:1px solid var(--line);border-radius:12px;background:#fbfcfb;padding:12px}
+.case-grid span,.score-summary span,.mini-grid span,.summary-grid span{display:block;color:var(--muted);font-size:.74rem;text-transform:uppercase;letter-spacing:.045em}
+.case-grid strong,.score-summary strong,.mini-grid strong,.summary-grid strong{display:block;margin-top:4px;font-size:1.08rem}
+.score-card{border-top:5px solid var(--blue)}
+.score-heading{display:flex;justify-content:space-between;gap:18px;align-items:flex-start}
+.score-total{min-width:150px;text-align:center;padding:14px 18px;border:1px solid var(--line);border-radius:14px;background:#f8fbfd}
+.score-total span{display:block;color:var(--muted);font-size:.75rem;text-transform:uppercase}
+.score-total strong{font-size:2rem}
+.table-wrap{overflow:auto}
+table{width:100%;border-collapse:collapse;margin-top:10px}
+th,td{padding:9px 10px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
+th:first-child,td:first-child{text-align:left}
+th{font-size:.76rem;color:var(--muted);text-transform:uppercase;letter-spacing:.035em}
+.formula{background:#f3f7f4;border-left:4px solid var(--green);padding:12px 14px;border-radius:8px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;margin:14px 0}
+.note{padding:12px 14px;border-radius:11px;background:var(--bluebg);color:#294f60;margin:12px 0}
+.warn{padding:12px 14px;border-radius:11px;background:var(--amberbg);color:var(--amber);margin:12px 0}
+.question-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;margin:15px 0}
+.question-grid.three{grid-template-columns:repeat(3,1fr)}
+.question-grid.four{grid-template-columns:repeat(4,1fr)}
+label{font-weight:720;font-size:.92rem}
+input,select{width:100%;margin-top:6px;border:1px solid #cad5cb;border-radius:10px;padding:10px 11px;font:inherit;background:#fff}
+input:focus,select:focus{outline:3px solid rgba(47,106,59,.12);border-color:var(--green)}
+input.good{border-color:var(--green);background:#fbfffc}
+input.bad{border-color:var(--red);background:#fffafa}
+.field-feedback{display:block;min-height:1.15em;font-size:.8rem;margin-top:4px;color:var(--muted)}
+.field-feedback.good{color:var(--green);font-weight:750}.field-feedback.bad{color:var(--red);font-weight:750}
+.feedback{border-radius:11px;padding:11px 13px;margin-top:10px}
+.feedback.neutral{background:#f0f2f0;color:var(--muted)}
+.feedback.pass{background:var(--greenbg);color:#1d673a;font-weight:800}
+.feedback.fail{background:var(--redbg);color:var(--red);font-weight:800}
+.feedback.warn{background:var(--amberbg);color:var(--amber);font-weight:800}
+.actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
+button{border:0;border-radius:11px;padding:11px 14px;font:inherit;font-weight:800;cursor:pointer;background:var(--green);color:white}
+button.secondary{background:#e8eeea;color:var(--ink)}
+.status-pill{display:inline-block;padding:3px 8px;border-radius:999px;font-size:.75rem;font-weight:800}
+.status-pill.complete{background:var(--greenbg);color:#1d673a}
+.status-pill.incomplete{background:#f0f2f0;color:var(--muted)}
+.target{background:var(--greenbg)}
+.high{background:#fff4df}.low{background:#fff0ee}
+.wedge-wrap{margin:20px 0;border:1px solid var(--line);border-radius:14px;padding:14px;background:#fbfcfb}
+.wedge-axis{display:grid;grid-template-columns:50px 1fr 70px;gap:8px;align-items:center;margin:5px 0}
+.wedge-label{font-weight:800}
+.wedge-track{height:24px;position:relative;background:#edf1ed;border-radius:6px;overflow:hidden}
+.wedge-target-band{position:absolute;top:0;bottom:0;background:rgba(47,106,59,.18);border-left:1px dashed #2f6a3b;border-right:1px dashed #2f6a3b}
+.wedge-bar{height:100%;background:linear-gradient(90deg,#6f9b75,#2f6a3b);border-radius:6px;position:relative;z-index:2}
+.wedge-value{text-align:right;font-variant-numeric:tabular-nums}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:.82rem;color:var(--muted);margin-top:10px}
+.legend i{display:inline-block;width:16px;height:10px;border-radius:2px;margin-right:4px;vertical-align:middle}
+.legend .band{background:rgba(47,106,59,.25)}
+.teaching-note{border:1px solid var(--line);border-radius:12px;background:#fbfcfb;padding:12px 14px;margin:12px 0}
+.teaching-note summary{cursor:pointer;font-weight:800}
+.practice-row{background:#eef7ef;border-top:2px solid var(--green)}
+.scenario-box{background:#f7faf7;border:1px solid var(--line);border-radius:14px;padding:14px 17px;margin:14px 0}
+@media(max-width:900px){.case-grid,.score-summary,.mini-grid,.summary-grid,.question-grid.four{grid-template-columns:1fr 1fr}.score-heading{flex-direction:column}}
+@media(max-width:650px){.case-grid,.score-summary,.mini-grid,.summary-grid,.question-grid,.question-grid.three,.question-grid.four{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<header class="hero">
+  <div class="wrap">
+    <p class="kicker">Student grazing-management exercise · single-file app</p>
+    <h1>Grass Growth & Grazing Allocation Tutor</h1>
+    <p>Calculate animal grass demand, average farm cover, grass supply, the grazing wedge, ideal pre-grazing cover and days of grazing ahead.</p>
+  </div>
+</header>
+
+<main class="wrap">
+
+<section class="card score-card">
+  <div class="score-heading">
+    <div>
+      <p class="stepno">Student marks</p>
+      <h2>Progress & attempt record</h2>
+      <p class="small">Answers are checked while you type. Press <strong>Mark this attempt</strong> only when you want the attempt recorded.</p>
+    </div>
+    <div class="score-total"><span>Overall score</span><strong id="overallScore">0%</strong></div>
+  </div>
+  <div class="score-summary">
+    <div><span>Attempts</span><strong id="scoreAttempts">0</strong></div>
+    <div><span>Successful</span><strong id="scoreSuccess">0</strong></div>
+    <div><span>Unsuccessful</span><strong id="scoreFail">0</strong></div>
+    <div><span>Completed</span><strong id="scoreCompleted">0 / 9</strong></div>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Exercise</th><th>Attempts</th><th>Successful</th><th>Unsuccessful</th><th>Best</th><th>Status</th></tr></thead>
+      <tbody>
+        <tr><td>1 · Measure grass: quadrat + plate meter</td><td id="s_measure_attempts">0</td><td id="s_measure_success">0</td><td id="s_measure_fail">0</td><td id="s_measure_best">—</td><td id="s_measure_status"><span class="status-pill incomplete">Not completed</span></td></tr>
+        <tr><td>2 · Animal grass demand</td><td id="s_lesson1_attempts">0</td><td id="s_lesson1_success">0</td><td id="s_lesson1_fail">0</td><td id="s_lesson1_best">—</td><td id="s_lesson1_status"><span class="status-pill incomplete">Not completed</span></td></tr>
+        <tr><td>3 · Average Farm Cover</td><td id="s_lesson2_attempts">0</td><td id="s_lesson2_success">0</td><td id="s_lesson2_fail">0</td><td id="s_lesson2_best">—</td><td id="s_lesson2_status"><span class="status-pill incomplete">Not completed</span></td></tr>
+        <tr><td>4 · Grass wedge & paddock status</td><td id="s_lesson3_attempts">0</td><td id="s_lesson3_success">0</td><td id="s_lesson3_fail">0</td><td id="s_lesson3_best">—</td><td id="s_lesson3_status"><span class="status-pill incomplete">Not completed</span></td></tr>
+        <tr><td>5 · Daily demand & pre-grazing yield</td><td id="s_lesson4_attempts">0</td><td id="s_lesson4_success">0</td><td id="s_lesson4_fail">0</td><td id="s_lesson4_best">—</td><td id="s_lesson4_status"><span class="status-pill incomplete">Not completed</span></td></tr>
+        <tr><td>6 · Paddock size & grass DM</td><td id="s_lesson5_attempts">0</td><td id="s_lesson5_success">0</td><td id="s_lesson5_fail">0</td><td id="s_lesson5_best">—</td><td id="s_lesson5_status"><span class="status-pill incomplete">Not completed</span></td></tr>
+        <tr><td>7 · Grazing days ahead</td><td id="s_lesson6_attempts">0</td><td id="s_lesson6_success">0</td><td id="s_lesson6_fail">0</td><td id="s_lesson6_best">—</td><td id="s_lesson6_status"><span class="status-pill incomplete">Not completed</span></td></tr>
+        <tr><td>8 · Simple grass growth</td><td id="s_lesson7_attempts">0</td><td id="s_lesson7_success">0</td><td id="s_lesson7_fail">0</td><td id="s_lesson7_best">—</td><td id="s_lesson7_status"><span class="status-pill incomplete">Not completed</span></td></tr>
+        <tr class="practice-row"><td><strong>9 · Practice generator</strong></td><td id="s_practice_attempts">0</td><td id="s_practice_success">0</td><td id="s_practice_fail">0</td><td id="s_practice_best">—</td><td id="s_practice_status"><span class="status-pill incomplete">Not completed</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="actions"><button id="resetScores" class="secondary">Reset marks</button><button id="downloadScores" class="secondary">Download marks CSV</button></div>
+  <p class="small">Students can also submit a screenshot of this table.</p>
+</section>
+
+<section class="card">
+  <p class="stepno">The fixed farm case</p>
+  <h2>10 paddocks, 12 ha grazing area</h2>
+  <div class="case-grid">
+    <div><span>Paddocks</span><strong>10</strong></div>
+    <div><span>Total area</span><strong>12 ha</strong></div>
+    <div><span>Stocking rate</span><strong>2.4 LU/ha</strong></div>
+    <div><span>Rotation</span><strong>18 days</strong></div>
+    <div><span>Target cover</span><strong>1,100–1,500 kg DM/ha</strong></div>
+    <div><span>Residual</span><strong>500 kg DM/ha</strong></div>
+    <div><span>Exercise intake</span><strong>16 kg DM/LU/day</strong></div>
+    <div><span>Extension herd</span><strong>40 cows</strong></div>
+  </div>
+  <div class="warn">
+    The exercise contains two different demand examples. The stocking-rate calculation uses <strong>2.4 LU/ha × 16 kg DM/LU/day</strong>.
+    The later extension separately uses <strong>40 cows × 16 kg DM/day</strong>. Keep those two calculations separate.
+  </div>
+</section>
+
+<section class="card" id="measureLesson">
+  <p class="stepno">Step 1 · Measure grass before allocating it</p>
+  <h2>Step 1a · Use the 0.5 m × 0.5 m quadrat method</h2>
+
+  <p>
+    Before you can calculate Average Farm Cover or allocate grass to animals, you need an estimate of
+    <strong>kg DM/ha in the paddock</strong>. In this exercise, start with the quadrat method.
+  </p>
+
+  <div class="mini-grid">
+    <div><span>Quadrat length</span><strong>0.5 m</strong></div>
+    <div><span>Quadrat width</span><strong>0.5 m</strong></div>
+    <div><span>Fresh grass cut</span><strong>0.200 kg</strong></div>
+    <div><span>Grass DM</span><strong>16%</strong></div>
+  </div>
+
+  <h3>A. Why is the multiplier 40,000?</h3>
+  <div class="formula">
+    Quadrat area = 0.5 m × 0.5 m = 0.25 m²<br>
+    Number of 0.25 m² quadrats in 1 ha = 10,000 m² ÷ 0.25 m²
+  </div>
+
+  <div class="question-grid three">
+    <label>Quadrat area (m²)
+      <input id="quadratArea" type="number" step="0.01">
+      <span id="quadratAreaFb" class="field-feedback"></span>
+    </label>
+    <label>Quadrats per hectare
+      <input id="quadratsHa" type="number" step="1">
+      <span id="quadratsHaFb" class="field-feedback"></span>
+    </label>
+    <label>DM fraction from 16%
+      <input id="dmFraction" type="number" step="0.01">
+      <span id="dmFractionFb" class="field-feedback"></span>
+    </label>
+  </div>
+
+  <h3>B. Calculate paddock grass cover</h3>
+  <div class="formula">
+    Grass cover (kg DM/ha) = fresh grass weight (kg) × DM fraction × 40,000
+  </div>
+
+  <div class="question-grid three">
+    <label>Fresh grass weight (kg)
+      <input id="quadratWeight" type="number" value="0.200" step="0.001">
+    </label>
+    <label>Grass DM (%)
+      <input id="quadratDMpct" type="number" value="16" step="0.1">
+    </label>
+    <label>Calculated grass cover (kg DM/ha)
+      <input id="quadratCover" type="number" step="1">
+      <span id="quadratCoverFb" class="field-feedback"></span>
+    </label>
+  </div>
+
+  <div class="teaching-note">
+    <strong>Important:</strong> convert the DM percentage to a fraction before multiplying.
+    For example, 16% = 0.16 — not 16.
+  </div>
+
+  <div id="measureFeedback" class="feedback neutral">
+    Complete the quadrat calculation first. This gives the kg DM/ha value that can then be used in the grazing calculations.
+  </div>
+
+  <hr style="border:0;border-top:1px solid var(--line);margin:24px 0">
+
+  <h2>Step 1b · Plate meter calculation</h2>
+  <p>
+    Take plate-meter heights across the paddock in a <strong>W or X pattern</strong>.
+    For this exercise, subtract the desired post-grazing residual height, then multiply the difference by
+    <strong>250 kg DM/cm</strong>.
+  </p>
+
+  <div class="formula">
+    Grass cover (kg DM/ha) = (average paddock height − residual height) × 250
+  </div>
+
+  <div class="mini-grid">
+    <div><span>Average paddock height</span><strong>8.8 cm</strong></div>
+    <div><span>Desired residual</span><strong>4.0 cm</strong></div>
+    <div><span>Difference</span><strong>Calculate it</strong></div>
+    <div><span>Multiplier</span><strong>250 kg DM/cm</strong></div>
+  </div>
+
+  <div class="question-grid four">
+    <label>Average paddock height (cm)
+      <input id="plateHeight" type="number" value="8.8" step="0.1">
+    </label>
+    <label>Residual height (cm)
+      <input id="plateResidual" type="number" value="4.0" step="0.1">
+    </label>
+    <label>Height above residual (cm)
+      <input id="plateDifference" type="number" step="0.1">
+      <span id="plateDifferenceFb" class="field-feedback"></span>
+    </label>
+    <label>Calculated grass cover (kg DM/ha)
+      <input id="plateCover" type="number" step="1">
+      <span id="plateCoverFb" class="field-feedback"></span>
+    </label>
+  </div>
+
+  <div class="formula">
+    Example: (8.8 − 4.0) × 250 = 1,200 kg DM/ha
+  </div>
+
+  <div id="plateFeedback" class="feedback neutral">
+    Calculate the height above the residual first, then convert it to kg DM/ha.
+  </div>
+
+  <div class="actions"><button id="markMeasure">Mark Step 1a + 1b attempt</button></div>
+</section>
+
+<section class="card" id="lesson1">
+  <p class="stepno">Step 2 · Animal need</p>
+  <h2>How much grass does the herd need?</h2>
+  <p>For a very simple estimate, use approximately <strong>3% of body weight as daily DM intake</strong>.</p>
+  <div class="formula">Daily grass DM per animal = body weight × 0.03</div>
+  <div class="question-grid three">
+    <label>Number of cattle
+      <input id="animalN" type="number" value="40" step="1">
+    </label>
+    <label>Average body weight (kg)
+      <input id="animalBW" type="number" value="600" step="10">
+    </label>
+    <label>Intake as % body weight
+      <input id="animalPct" type="number" value="3" step="0.1">
+    </label>
+    <label>Grass DM / animal / day (kg)
+      <input id="animalOne" type="number" step="0.1">
+      <span id="animalOneFb" class="field-feedback"></span>
+    </label>
+    <label>Total herd demand / day (kg DM)
+      <input id="animalHerd" type="number" step="1">
+      <span id="animalHerdFb" class="field-feedback"></span>
+    </label>
+  </div>
+  <div class="note">At 550 kg: about 16.5 kg DM/day. At 600 kg: 18 kg. At 650 kg: 19.5 kg. This is a simple teaching estimate.</div>
+  <div id="animalFeedback" class="feedback neutral">Calculate the requirement from the values above.</div>
+  <div class="actions"><button id="markLesson1">Mark this attempt</button></div>
+</section>
+
+<section class="card" id="lesson2">
+  <p class="stepno">Step 3 · Average Farm Cover</p>
+  <h2>Estimate the average grass cover across the 10 paddocks</h2>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Paddock</th><th>Cover (kg DM/ha)</th><th>Status vs target</th></tr></thead>
+      <tbody id="coverTable"></tbody>
+    </table>
+  </div>
+  <div class="formula">AFC = total paddock cover ÷ number of paddocks</div>
+  <div class="question-grid">
+    <label>Total of the 10 paddock covers
+      <input id="coverTotal" type="number" step="1">
+      <span id="coverTotalFb" class="field-feedback"></span>
+    </label>
+    <label>Average Farm Cover, AFC (kg DM/ha)
+      <input id="afc" type="number" step="1">
+      <span id="afcFb" class="field-feedback"></span>
+    </label>
+  </div>
+  <div class="teaching-note">
+    <strong>Why is this simple average valid here?</strong>
+    All 10 paddocks are the same size: 12 ha ÷ 10 = 1.2 ha each. If paddocks had different areas, an area-weighted AFC would be more appropriate.
+  </div>
+  <div id="afcFeedback" class="feedback neutral">Add the 10 covers and divide by 10.</div>
+  <div class="actions"><button id="markLesson2">Mark this attempt</button></div>
+</section>
+
+<section class="card" id="lesson3">
+  <p class="stepno">Step 4 · Grass wedge</p>
+  <h2>Rank paddocks and identify surplus or deficit</h2>
+  <p>Target pre-grazing zone: <strong>1,100–1,500 kg DM/ha</strong>.</p>
+  <div id="wedge" class="wedge-wrap"></div>
+  <div class="legend"><span><i class="band"></i>Target zone on each bar</span></div>
+  <div class="question-grid three">
+    <label>Number above target (>1500)
+      <input id="aboveTarget" type="number" step="1">
+      <span id="aboveTargetFb" class="field-feedback"></span>
+    </label>
+    <label>Number in target (1100–1500)
+      <input id="inTarget" type="number" step="1">
+      <span id="inTargetFb" class="field-feedback"></span>
+    </label>
+    <label>Number below target (<1100)
+      <input id="belowTarget" type="number" step="1">
+      <span id="belowTargetFb" class="field-feedback"></span>
+    </label>
+  </div>
+  <div id="wedgeFeedback" class="feedback neutral">Use the wedge and target zone to classify the paddocks.</div>
+  <div class="actions"><button id="markLesson3">Mark this attempt</button></div>
+</section>
+
+<section class="card" id="lesson4">
+  <p class="stepno">Step 5 · Daily demand and ideal pre-grazing yield</p>
+  <h2>Use stocking rate, intake and rotation</h2>
+  <div class="formula">Demand = stocking rate × intake</div>
+  <div class="formula">Ideal pre-grazing yield = (Demand × rotation) + residual</div>
+  <div class="question-grid three">
+    <label>Demand (kg DM/ha/day)
+      <input id="demandHa" type="number" step="0.1">
+      <span id="demandHaFb" class="field-feedback"></span>
+    </label>
+    <label>Demand across 12 ha (kg DM/day)
+      <input id="demandFarm" type="number" step="0.1">
+      <span id="demandFarmFb" class="field-feedback"></span>
+    </label>
+    <label>Ideal pre-grazing yield (kg DM/ha)
+      <input id="idealPre" type="number" step="0.1">
+      <span id="idealPreFb" class="field-feedback"></span>
+    </label>
+  </div>
+  <div id="demandFeedback" class="feedback neutral">Calculate daily demand first, then multiply by 18 days and add the 500 kg DM/ha residual.</div>
+  <div class="actions"><button id="markLesson4">Mark this attempt</button></div>
+</section>
+
+<section class="card" id="lesson5">
+  <p class="stepno">Step 6 · Paddock size and total grass DM</p>
+  <h2>How much grass is in each paddock?</h2>
+  <div class="formula">Paddock area = 12 ha ÷ 10 = ?</div>
+  <div class="formula">Grass DM in paddock = cover × paddock area</div>
+  <div class="question-grid three">
+    <label>Paddock size (ha)
+      <input id="paddockSize" type="number" step="0.1">
+      <span id="paddockSizeFb" class="field-feedback"></span>
+    </label>
+    <label>Grass DM in Paddock A (kg DM)
+      <input id="paddockADM" type="number" step="1">
+      <span id="paddockADMFb" class="field-feedback"></span>
+    </label>
+    <label>Total DM in all paddocks (kg DM)
+      <input id="allDM" type="number" step="1">
+      <span id="allDMFb" class="field-feedback"></span>
+    </label>
+  </div>
+  <div class="table-wrap"><table><thead><tr><th>Paddock</th><th>Cover</th><th>Area</th><th>Total DM</th></tr></thead><tbody id="dmTable"></tbody></table></div>
+  <div id="dmFeedback" class="feedback neutral">Calculate the paddock area, then multiply cover by area.</div>
+  <div class="actions"><button id="markLesson5">Mark this attempt</button></div>
+</section>
+
+<section class="card" id="lesson6">
+  <p class="stepno">Step 7 · Grazing days ahead</p>
+  <h2>Can the 40-cow herd graze each paddock for 2–3 days?</h2>
+  <p>Extension herd: <strong>40 cows × 16 kg DM/day = 640 kg DM/day</strong>.</p>
+  <div class="formula">Grazing days ahead = total DM ÷ 640</div>
+  <div class="formula">Grazing time per paddock = grazing days ahead ÷ 10</div>
+  <div class="question-grid three">
+    <label>Herd demand (kg DM/day)
+      <input id="herd640" type="number" step="1">
+      <span id="herd640Fb" class="field-feedback"></span>
+    </label>
+    <label>Grazing days ahead
+      <input id="daysAhead" type="number" step="0.1">
+      <span id="daysAheadFb" class="field-feedback"></span>
+    </label>
+    <label>Average days per paddock
+      <input id="daysPerPaddock" type="number" step="0.01">
+      <span id="daysPerPaddockFb" class="field-feedback"></span>
+    </label>
+  </div>
+  <div id="grazingFeedback" class="feedback neutral">Compare your answer with the 2–3 day target.</div>
+  <div class="actions"><button id="markLesson6">Mark this attempt</button></div>
+</section>
+
+<section class="card" id="lesson7">
+  <p class="stepno">Step 8 · Simple grass growth</p>
+  <h2>How fast did an ungrazed paddock grow?</h2>
+  <p>For a simple teaching estimate, compare two cover measurements from the same ungrazed paddock.</p>
+  <div class="formula">Growth rate = (current cover − previous cover) ÷ number of days</div>
+  <div class="question-grid four">
+    <label>Previous cover (kg DM/ha)
+      <input id="growthOld" type="number" value="900" step="10">
+    </label>
+    <label>Current cover (kg DM/ha)
+      <input id="growthNew" type="number" value="1200" step="10">
+    </label>
+    <label>Days between measurements
+      <input id="growthDays" type="number" value="7" step="1">
+    </label>
+    <label>Growth rate (kg DM/ha/day)
+      <input id="growthRate" type="number" step="0.1">
+      <span id="growthRateFb" class="field-feedback"></span>
+    </label>
+  </div>
+  <div class="note">This simple formula is appropriate only when the paddock has not been grazed or cut between the two measurements.</div>
+  <div id="growthFeedback" class="feedback neutral">Calculate the increase in cover and divide by the number of days.</div>
+  <div class="actions"><button id="markLesson7">Mark this attempt</button></div>
+</section>
+
+<section class="card">
+  <p class="stepno">Practice generator</p>
+  <h2>9 · New grazing case</h2>
+  <p>The generator changes herd size, body weight, area, number of equal paddocks and grass covers.</p>
+  <div class="actions"><button id="newPractice">Generate new case</button></div>
+  <div id="practiceCase" class="scenario-box"></div>
+  <div class="question-grid three">
+    <label>DM / animal / day (kg)
+      <input id="pOneAnimal" type="number" step="0.1"><span id="pOneAnimalFb" class="field-feedback"></span>
+    </label>
+    <label>Total herd demand (kg DM/day)
+      <input id="pHerdDemand" type="number" step="1"><span id="pHerdDemandFb" class="field-feedback"></span>
+    </label>
+    <label>Paddock size (ha)
+      <input id="pPaddockSize" type="number" step="0.01"><span id="pPaddockSizeFb" class="field-feedback"></span>
+    </label>
+    <label>AFC (kg DM/ha)
+      <input id="pAFC" type="number" step="1"><span id="pAFCFb" class="field-feedback"></span>
+    </label>
+    <label>Total grass DM (kg)
+      <input id="pTotalDM" type="number" step="1"><span id="pTotalDMFb" class="field-feedback"></span>
+    </label>
+    <label>Days grass supply
+      <input id="pDays" type="number" step="0.1"><span id="pDaysFb" class="field-feedback"></span>
+    </label>
+  </div>
+  <div id="practiceFeedback" class="feedback neutral">Generate a case and complete the calculation.</div>
+  <div class="actions"><button id="markPractice">Mark this attempt</button></div>
+</section>
+
+<section class="card">
+  <p class="stepno">Completed calculation</p>
+  <h2>Fixed-case answers</h2>
+  <div class="summary-grid">
+    <div><span>AFC</span><strong>1,196 kg DM/ha</strong></div>
+    <div><span>Demand</span><strong>38.4 kg DM/ha/day</strong></div>
+    <div><span>Ideal pre-grazing</span><strong>1,191.2 kg DM/ha</strong></div>
+    <div><span>Paddock area</span><strong>1.2 ha</strong></div>
+    <div><span>Total grass DM</span><strong>14,352 kg</strong></div>
+    <div><span>40-cow demand</span><strong>640 kg DM/day</strong></div>
+    <div><span>Grazing days ahead</span><strong>22.4 days</strong></div>
+    <div><span>Days / paddock</span><strong>2.24 days</strong></div>
+  </div>
+</section>
+
+</main>
+
+<script>
+const $=id=>document.getElementById(id);
+const val=id=>parseFloat($(id).value);
+const close=(a,b,t)=>Number.isFinite(a)&&Math.abs(a-b)<=t;
+
+function fb(id,type,text){
+  const e=$(id);e.className=`feedback ${type}`;e.textContent=text;
+}
+function markField(id,fbid,ok,text="Correct"){
+  const i=$(id),f=$(fbid);
+  i.classList.remove("good","bad");f.className="field-feedback";
+  if(!i.value){f.textContent="";return;}
+  i.classList.add(ok?"good":"bad");f.classList.add(ok?"good":"bad");
+  f.textContent=ok?`✓ ${text}`:"Check this value";
+}
+
+const covers=[
+  {p:"A",c:1850},{p:"B",c:1680},{p:"C",c:1510},{p:"D",c:1420},{p:"E",c:1200},
+  {p:"F",c:1080},{p:"G",c:980},{p:"H",c:850},{p:"I",c:760},{p:"J",c:630}
+];
+const targetLow=1100,targetHigh=1500,totalArea=12,paddockArea=1.2;
+const totalCover=covers.reduce((s,x)=>s+x.c,0);
+const AFC=totalCover/covers.length;
+const totalDM=totalCover*paddockArea;
+const demandHa=2.4*16;
+const demandFarm=demandHa*12;
+const idealPre=demandHa*18+500;
+const herdDemand=40*16;
+const daysAhead=totalDM/herdDemand;
+const daysPer=daysAhead/10;
+
+function status(c){return c>targetHigh?"Above target":c<targetLow?"Below target":"In target";}
+function statusClass(c){return c>targetHigh?"high":c<targetLow?"low":"target";}
+
+function renderTables(){
+  $("coverTable").innerHTML=covers.map(x=>`<tr class="${statusClass(x.c)}"><td>${x.p}</td><td>${x.c}</td><td>${status(x.c)}</td></tr>`).join("");
+  $("dmTable").innerHTML=covers.map(x=>`<tr><td>${x.p}</td><td>${x.c}</td><td>1.2 ha</td><td>${(x.c*1.2).toFixed(0)} kg</td></tr>`).join("");
+}
+function renderWedge(){
+  const max=2000,bandLeft=targetLow/max*100,bandWidth=(targetHigh-targetLow)/max*100;
+  $("wedge").innerHTML=covers.slice().sort((a,b)=>b.c-a.c).map(x=>`
+    <div class="wedge-axis">
+      <div class="wedge-label">${x.p}</div>
+      <div class="wedge-track">
+        <div class="wedge-target-band" style="left:${bandLeft}%;width:${bandWidth}%"></div>
+        <div class="wedge-bar" style="width:${Math.min(100,x.c/max*100)}%"></div>
+      </div>
+      <div class="wedge-value">${x.c}</div>
+    </div>`).join("");
+}
+renderTables();renderWedge();
+
+
+// Step 1: quadrat grass measurement
+function quadratAnswers(){
+  const weight=val("quadratWeight");
+  const dmPct=val("quadratDMpct");
+  const area=.5*.5;
+  const qha=10000/area;
+  const dmFrac=dmPct/100;
+  const cover=weight*dmFrac*qha;
+  return {area,qha,dmFrac,cover};
+}
+function checkQuadrat(){
+  const a=quadratAnswers();
+  markField("quadratArea","quadratAreaFb",close(val("quadratArea"),a.area,.005));
+  markField("quadratsHa","quadratsHaFb",close(val("quadratsHa"),a.qha,1));
+  markField("dmFraction","dmFractionFb",close(val("dmFraction"),a.dmFrac,.005));
+  markField("quadratCover","quadratCoverFb",close(val("quadratCover"),a.cover,1));
+
+  const ids=["quadratArea","quadratsHa","dmFraction","quadratCover"];
+  if(ids.every(id=>Number.isFinite(val(id)))){
+    const ok=
+      close(val("quadratArea"),a.area,.005) &&
+      close(val("quadratsHa"),a.qha,1) &&
+      close(val("dmFraction"),a.dmFrac,.005) &&
+      close(val("quadratCover"),a.cover,1);
+
+    fb(
+      "measureFeedback",
+      ok?"pass":"fail",
+      ok
+        ? `Correct. 0.5 × 0.5 = 0.25 m²; 10,000 ÷ 0.25 = 40,000 quadrats/ha; ${a.cover.toFixed(0)} kg DM/ha.`
+        : "Work in order: quadrat area → quadrats per hectare → DM fraction → fresh weight × DM fraction × 40,000."
+    );
+  }
+}
+["quadratArea","quadratsHa","dmFraction","quadratWeight","quadratDMpct","quadratCover"].forEach(id=>{
+  $(id).addEventListener("input",checkQuadrat);
+});
+
+
+function plateAnswers(){
+  const height=val("plateHeight");
+  const residual=val("plateResidual");
+  const difference=height-residual;
+  const cover=difference*250;
+  return {difference,cover};
+}
+function checkPlate(){
+  const a=plateAnswers();
+  markField("plateDifference","plateDifferenceFb",close(val("plateDifference"),a.difference,.05));
+  markField("plateCover","plateCoverFb",close(val("plateCover"),a.cover,2));
+  if(Number.isFinite(val("plateDifference")) && Number.isFinite(val("plateCover"))){
+    const ok=close(val("plateDifference"),a.difference,.05) && close(val("plateCover"),a.cover,2);
+    fb("plateFeedback",ok?"pass":"fail",ok?`Correct. ${val("plateHeight").toFixed(1)} − ${val("plateResidual").toFixed(1)} = ${a.difference.toFixed(1)} cm; ${a.difference.toFixed(1)} × 250 = ${a.cover.toFixed(0)} kg DM/ha.`:"Subtract the residual height from the average paddock height, then multiply by 250 kg DM/cm.");
+  }
+}
+["plateHeight","plateResidual","plateDifference","plateCover"].forEach(id=>$(id).addEventListener("input",checkPlate));
+
+
+// Lesson 1
+function animalAnswers(){
+  const n=val("animalN"),bw=val("animalBW"),pct=val("animalPct")/100;
+  return {one:bw*pct,herd:n*bw*pct};
+}
+function checkAnimal(){
+  const a=animalAnswers();
+  markField("animalOne","animalOneFb",close(val("animalOne"),a.one,.15));
+  markField("animalHerd","animalHerdFb",close(val("animalHerd"),a.herd,2));
+  if(Number.isFinite(val("animalOne"))&&Number.isFinite(val("animalHerd"))){
+    const ok=close(val("animalOne"),a.one,.15)&&close(val("animalHerd"),a.herd,2);
+    fb("animalFeedback",ok?"pass":"fail",ok?`Correct. Each animal needs about ${a.one.toFixed(1)} kg DM/day and the herd about ${a.herd.toFixed(0)} kg DM/day.`:"Use body weight × intake fraction, then multiply by number of cattle.");
+  }
+}
+["animalN","animalBW","animalPct","animalOne","animalHerd"].forEach(id=>$(id).addEventListener("input",checkAnimal));
+
+// Lesson 2
+function checkAFC(){
+  markField("coverTotal","coverTotalFb",close(val("coverTotal"),totalCover,.5));
+  markField("afc","afcFb",close(val("afc"),AFC,.5));
+  if(Number.isFinite(val("coverTotal"))&&Number.isFinite(val("afc"))){
+    const ok=close(val("coverTotal"),totalCover,.5)&&close(val("afc"),AFC,.5);
+    fb("afcFeedback",ok?"pass":"fail",ok?`Correct. Total cover = ${totalCover}; AFC = ${AFC.toFixed(0)} kg DM/ha.`:"Add all 10 paddock covers, then divide by 10.");
+  }
+}
+["coverTotal","afc"].forEach(id=>$(id).addEventListener("input",checkAFC));
+
+// Lesson 3
+const counts={above:covers.filter(x=>x.c>1500).length,inside:covers.filter(x=>x.c>=1100&&x.c<=1500).length,below:covers.filter(x=>x.c<1100).length};
+function checkWedge(){
+  markField("aboveTarget","aboveTargetFb",close(val("aboveTarget"),counts.above,.01));
+  markField("inTarget","inTargetFb",close(val("inTarget"),counts.inside,.01));
+  markField("belowTarget","belowTargetFb",close(val("belowTarget"),counts.below,.01));
+  if(["aboveTarget","inTarget","belowTarget"].every(id=>Number.isFinite(val(id)))){
+    const ok=close(val("aboveTarget"),counts.above,.01)&&close(val("inTarget"),counts.inside,.01)&&close(val("belowTarget"),counts.below,.01);
+    fb("wedgeFeedback",ok?"pass":"fail",ok?"Correct. A, B and C are above target; D and E are in target; F–J are below target.":"Compare each cover with 1,100–1,500 kg DM/ha.");
+  }
+}
+["aboveTarget","inTarget","belowTarget"].forEach(id=>$(id).addEventListener("input",checkWedge));
+
+// Lesson 4
+function checkDemand(){
+  markField("demandHa","demandHaFb",close(val("demandHa"),demandHa,.05));
+  markField("demandFarm","demandFarmFb",close(val("demandFarm"),demandFarm,.2));
+  markField("idealPre","idealPreFb",close(val("idealPre"),idealPre,.2));
+  if(["demandHa","demandFarm","idealPre"].every(id=>Number.isFinite(val(id)))){
+    const ok=close(val("demandHa"),demandHa,.05)&&close(val("demandFarm"),demandFarm,.2)&&close(val("idealPre"),idealPre,.2);
+    fb("demandFeedback",ok?"pass":"fail",ok?`Correct. Demand = 38.4 kg DM/ha/day; ideal pre-grazing yield = ${idealPre.toFixed(1)} kg DM/ha.`:"Use 2.4 × 16, then × 18 days + 500.");
+  }
+}
+["demandHa","demandFarm","idealPre"].forEach(id=>$(id).addEventListener("input",checkDemand));
+
+// Lesson 5
+function checkDM(){
+  markField("paddockSize","paddockSizeFb",close(val("paddockSize"),1.2,.01));
+  markField("paddockADM","paddockADMFb",close(val("paddockADM"),1850*1.2,1));
+  markField("allDM","allDMFb",close(val("allDM"),totalDM,3));
+  if(["paddockSize","paddockADM","allDM"].every(id=>Number.isFinite(val(id)))){
+    const ok=close(val("paddockSize"),1.2,.01)&&close(val("paddockADM"),2220,1)&&close(val("allDM"),14352,3);
+    fb("dmFeedback",ok?"pass":"fail",ok?"Correct. Each paddock is 1.2 ha; Paddock A contains 2,220 kg DM; all paddocks total 14,352 kg DM.":"Divide 12 ha by 10, then multiply each cover by 1.2 ha.");
+  }
+}
+["paddockSize","paddockADM","allDM"].forEach(id=>$(id).addEventListener("input",checkDM));
+
+// Lesson 6
+function checkDays(){
+  markField("herd640","herd640Fb",close(val("herd640"),640,.2));
+  markField("daysAhead","daysAheadFb",close(val("daysAhead"),daysAhead,.08));
+  markField("daysPerPaddock","daysPerPaddockFb",close(val("daysPerPaddock"),daysPer,.03));
+  if(["herd640","daysAhead","daysPerPaddock"].every(id=>Number.isFinite(val(id)))){
+    const ok=close(val("herd640"),640,.2)&&close(val("daysAhead"),daysAhead,.08)&&close(val("daysPerPaddock"),daysPer,.03);
+    fb("grazingFeedback",ok?"pass":"fail",ok?`Correct. Supply = ${daysAhead.toFixed(1)} days, averaging ${daysPer.toFixed(2)} days per paddock — within the 2–3 day target in this exercise.`:"Use 40 × 16, then total grass DM ÷ herd demand, then ÷ 10 paddocks.");
+  }
+}
+["herd640","daysAhead","daysPerPaddock"].forEach(id=>$(id).addEventListener("input",checkDays));
+
+// Lesson 7
+function growthAnswer(){return (val("growthNew")-val("growthOld"))/val("growthDays");}
+function checkGrowth(){
+  const ans=growthAnswer();
+  markField("growthRate","growthRateFb",close(val("growthRate"),ans,.15));
+  if(Number.isFinite(val("growthRate"))&&Number.isFinite(ans)){
+    const ok=close(val("growthRate"),ans,.15);
+    fb("growthFeedback",ok?"pass":"fail",ok?`Correct. Growth rate = ${ans.toFixed(1)} kg DM/ha/day.`:"Subtract the old cover from the new cover, then divide by days.");
+  }
+}
+["growthOld","growthNew","growthDays","growthRate"].forEach(id=>$(id).addEventListener("input",checkGrowth));
+
+// Practice
+let practice=null;
+function pick(a){return a[Math.floor(Math.random()*a.length)]}
+function generatePractice(){
+  const cattle=pick([25,30,35,40,45,50]);
+  const bw=pick([550,575,600,625,650]);
+  const pct=3;
+  const area=pick([8,10,12,15]);
+  const paddocks=pick([5,8,10]);
+  const psize=area/paddocks;
+  const pcovers=Array.from({length:paddocks},()=>pick([750,850,950,1050,1150,1250,1350,1450,1550,1650]));
+  const one=bw*.03, herd=cattle*one, afc=pcovers.reduce((a,b)=>a+b,0)/paddocks;
+  const tdm=pcovers.reduce((a,b)=>a+b,0)*psize;
+  const days=tdm/herd;
+  practice={cattle,bw,pct,area,paddocks,psize,pcovers,one,herd,afc,tdm,days};
+  $("practiceCase").innerHTML=`<p><strong>${cattle} cattle</strong>, average body weight <strong>${bw} kg</strong>, using <strong>3% BW</strong> intake.</p>
+  <p><strong>${area} ha</strong> divided equally into <strong>${paddocks} paddocks</strong>.</p>
+  <p><strong>Paddock covers:</strong> ${pcovers.join(", ")} kg DM/ha.</p>`;
+  ["pOneAnimal","pHerdDemand","pPaddockSize","pAFC","pTotalDM","pDays"].forEach(id=>{$(id).value="";$(id).classList.remove("good","bad")});
+  ["pOneAnimalFb","pHerdDemandFb","pPaddockSizeFb","pAFCFb","pTotalDMFb","pDaysFb"].forEach(id=>{$(id).textContent="";$(id).className="field-feedback"});
+  fb("practiceFeedback","neutral","Complete the new case.");
+}
+function checkPractice(){
+  if(!practice)return;
+  const p=practice;
+  markField("pOneAnimal","pOneAnimalFb",close(val("pOneAnimal"),p.one,.15));
+  markField("pHerdDemand","pHerdDemandFb",close(val("pHerdDemand"),p.herd,2));
+  markField("pPaddockSize","pPaddockSizeFb",close(val("pPaddockSize"),p.psize,.03));
+  markField("pAFC","pAFCFb",close(val("pAFC"),p.afc,1));
+  markField("pTotalDM","pTotalDMFb",close(val("pTotalDM"),p.tdm,5));
+  markField("pDays","pDaysFb",close(val("pDays"),p.days,.1));
+  const ids=["pOneAnimal","pHerdDemand","pPaddockSize","pAFC","pTotalDM","pDays"];
+  if(ids.every(id=>Number.isFinite(val(id)))){
+    const arr=[
+      close(val("pOneAnimal"),p.one,.15),close(val("pHerdDemand"),p.herd,2),close(val("pPaddockSize"),p.psize,.03),
+      close(val("pAFC"),p.afc,1),close(val("pTotalDM"),p.tdm,5),close(val("pDays"),p.days,.1)
+    ];
+    fb("practiceFeedback",arr.every(Boolean)?"pass":"warn",arr.every(Boolean)?"All six calculations are correct.":`${arr.filter(Boolean).length} of 6 parts are correct.`);
+  }
+}
+$("newPractice").addEventListener("click",generatePractice);
+["pOneAnimal","pHerdDemand","pPaddockSize","pAFC","pTotalDM","pDays"].forEach(id=>$(id).addEventListener("input",checkPractice));
+
+// Scoring
+const KEY="grassGrowthTutorScoresV1";
+const labels={
+  measure:"1 · Measure grass: quadrat + plate meter",
+  lesson1:"2 · Animal grass demand",
+  lesson2:"3 · Average Farm Cover",
+  lesson3:"4 · Grass wedge & paddock status",
+  lesson4:"5 · Daily demand & pre-grazing yield",
+  lesson5:"6 · Paddock size & grass DM",
+  lesson6:"7 · Grazing days ahead",
+  lesson7:"8 · Simple grass growth",
+  practice:"9 · Practice generator"
+};
+function emptyScores(){const o={};Object.keys(labels).forEach(k=>o[k]={attempts:0,success:0,fail:0,best:0,completed:false});return o}
+function loadScores(){try{const base=emptyScores(),old=JSON.parse(localStorage.getItem(KEY)||"{}");Object.keys(base).forEach(k=>{if(old[k])base[k]={...base[k],...old[k]}});return base}catch(e){return emptyScores()}}
+let scores=loadScores();
+function saveScores(){localStorage.setItem(KEY,JSON.stringify(scores))}
+function resultFor(k){
+  if(k==="measure"){
+    const ids=["quadratArea","quadratsHa","dmFraction","quadratCover","plateDifference","plateCover"];
+    if(ids.some(id=>!Number.isFinite(val(id))))return null;
+    const a=quadratAnswers();
+    const p=plateAnswers();
+    return [
+      close(val("quadratArea"),a.area,.005),
+      close(val("quadratsHa"),a.qha,1),
+      close(val("dmFraction"),a.dmFrac,.005),
+      close(val("quadratCover"),a.cover,1),
+      close(val("plateDifference"),p.difference,.05),
+      close(val("plateCover"),p.cover,2)
+    ];
+  }
+  if(k==="lesson1"){const a=animalAnswers(),ids=["animalOne","animalHerd"];if(ids.some(id=>!Number.isFinite(val(id))))return null;return [close(val("animalOne"),a.one,.15),close(val("animalHerd"),a.herd,2)]}
+  if(k==="lesson2"){if(!Number.isFinite(val("coverTotal"))||!Number.isFinite(val("afc")))return null;return [close(val("coverTotal"),totalCover,.5),close(val("afc"),AFC,.5)]}
+  if(k==="lesson3"){const ids=["aboveTarget","inTarget","belowTarget"];if(ids.some(id=>!Number.isFinite(val(id))))return null;return [close(val("aboveTarget"),counts.above,.01),close(val("inTarget"),counts.inside,.01),close(val("belowTarget"),counts.below,.01)]}
+  if(k==="lesson4"){const ids=["demandHa","demandFarm","idealPre"];if(ids.some(id=>!Number.isFinite(val(id))))return null;return [close(val("demandHa"),demandHa,.05),close(val("demandFarm"),demandFarm,.2),close(val("idealPre"),idealPre,.2)]}
+  if(k==="lesson5"){const ids=["paddockSize","paddockADM","allDM"];if(ids.some(id=>!Number.isFinite(val(id))))return null;return [close(val("paddockSize"),1.2,.01),close(val("paddockADM"),2220,1),close(val("allDM"),14352,3)]}
+  if(k==="lesson6"){const ids=["herd640","daysAhead","daysPerPaddock"];if(ids.some(id=>!Number.isFinite(val(id))))return null;return [close(val("herd640"),640,.2),close(val("daysAhead"),daysAhead,.08),close(val("daysPerPaddock"),daysPer,.03)]}
+  if(k==="lesson7"){if(!Number.isFinite(val("growthRate")))return null;return [close(val("growthRate"),growthAnswer(),.15)]}
+  if(k==="practice"){if(!practice)return null;const ids=["pOneAnimal","pHerdDemand","pPaddockSize","pAFC","pTotalDM","pDays"];if(ids.some(id=>!Number.isFinite(val(id))))return null;const p=practice;return [close(val("pOneAnimal"),p.one,.15),close(val("pHerdDemand"),p.herd,2),close(val("pPaddockSize"),p.psize,.03),close(val("pAFC"),p.afc,1),close(val("pTotalDM"),p.tdm,5),close(val("pDays"),p.days,.1)]}
+  return null;
+}
+function record(k){
+  const arr=resultFor(k);if(!arr){alert("Complete all answers in this exercise before marking.");return}
+  const correct=arr.filter(Boolean).length,pct=Math.round(correct/arr.length*100),success=correct===arr.length,s=scores[k];
+  s.attempts++;if(success){s.success++;s.completed=true}else s.fail++;s.best=Math.max(s.best,pct);saveScores();renderScores();
+  alert(success?`Marked: ${pct}% — successful.`:`Marked: ${pct}% — ${correct} of ${arr.length} parts correct.`);
+}
+function renderScores(){
+  let att=0,suc=0,failn=0,comp=0;
+  Object.keys(labels).forEach(k=>{
+    const s=scores[k];att+=s.attempts;suc+=s.success;failn+=s.fail;if(s.completed)comp++;
+    $(`s_${k}_attempts`).textContent=s.attempts;$(`s_${k}_success`).textContent=s.success;$(`s_${k}_fail`).textContent=s.fail;
+    $(`s_${k}_best`).textContent=s.attempts?s.best+"%":"—";
+    $(`s_${k}_status`).innerHTML=`<span class="status-pill ${s.completed?"complete":"incomplete"}">${s.completed?"Completed":"Not completed"}</span>`;
+  });
+  $("scoreAttempts").textContent=att;$("scoreSuccess").textContent=suc;$("scoreFail").textContent=failn;$("scoreCompleted").textContent=`${comp} / 9`;
+  $("overallScore").textContent=`${att?Math.round(suc/att*100):0}%`;
+}
+$("markMeasure").addEventListener("click",()=>record("measure"));
+for(let n=1;n<=7;n++)$(`markLesson${n}`).addEventListener("click",()=>record(`lesson${n}`));
+$("markPractice").addEventListener("click",()=>record("practice"));
+$("resetScores").addEventListener("click",()=>{if(confirm("Reset all marks on this browser?")){scores=emptyScores();saveScores();renderScores()}});
+$("downloadScores").addEventListener("click",()=>{
+  const rows=[["Exercise","Attempts","Successful","Unsuccessful","Best","Completed"]];
+  Object.keys(labels).forEach(k=>{const s=scores[k];rows.push([labels[k],s.attempts,s.success,s.fail,s.attempts?s.best+"%":"",s.completed?"Yes":"No"])});
+  const csv=rows.map(r=>r.map(x=>`"${String(x??"").replaceAll('"','""')}"`).join(",")).join("\n");
+  const b=new Blob([csv],{type:"text/csv"}),u=URL.createObjectURL(b),a=document.createElement("a");a.href=u;a.download="grass-grazing-tutor-marks.csv";a.click();URL.revokeObjectURL(u);
+});
+
+generatePractice();renderScores();
+</script>
+</body>
+</html>
